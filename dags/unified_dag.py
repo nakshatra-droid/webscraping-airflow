@@ -7,6 +7,7 @@ from airflow.utils.trigger_rule import TriggerRule
 from taskgroups.amazon_taskgroup import amazon_taskgroup
 from taskgroups.flipkart_taskgroup import flipkart_taskgroup
 from taskgroups.embedding_taskgroup import embedding_taskgroup
+from core.constants.constants_values import AmazonConstants, FlipkartConstants
 
 
 with DAG(
@@ -16,9 +17,9 @@ with DAG(
     catchup=False,
     params={
         "source": Param(
-            "AMAZON",
+            AmazonConstants.SOURCE,
             type="string",
-            enum=["AMAZON", "FLIPKART"],
+            enum=[AmazonConstants.SOURCE, FlipkartConstants.SOURCE],
             description="Choose which scraping flow to run",
         )
     },
@@ -26,8 +27,8 @@ with DAG(
 
     @task.branch(task_id="choose_source")
     def choose_source(source: str) -> str:
-        selected = (source or "AMAZON").upper()
-        if selected == "FLIPKART":
+        selected = (source or AmazonConstants.SOURCE).upper()
+        if selected == FlipkartConstants.SOURCE:
             return "flipkart_scraper.insert_metadata"
         return "amazon_scraper.insert_metadata"
 

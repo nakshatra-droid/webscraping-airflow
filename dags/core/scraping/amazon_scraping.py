@@ -22,7 +22,6 @@ SINGLE_URL = AmazonConstants.SINGLE_URL
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 BATCH_SIZE = AmazonConstants.BATCH_SIZE
-CARD_LINK_SEL = AmazonConstants.CARD_LINK_SEL
 NEXT_BTN_SEL = AmazonConstants.NEXT_BTN_SEL
 
 
@@ -126,7 +125,10 @@ class AmazonScraping:
 
     @staticmethod
     def extract_model_number(specs: dict) -> str | None:
-        cleaned = AmazonScraping._clean_text(str(specs.get("Item model number") or ""))
+        # Check both old and new key formats
+        cleaned = AmazonScraping._clean_text(
+            str(specs.get("Model Number") or specs.get("Item model number") or "")
+        )
         return cleaned or None
 
     @staticmethod
@@ -174,17 +176,19 @@ class AmazonScraping:
         return {
             "model_number": model_number,
             "brand": AmazonScraping.normalise_brand(raw.get("brand"), specs_lower),
-            "series": AmazonScraping.first_spec_value(specs_lower, "series"),
+            "series": AmazonScraping.first_spec_value(
+                specs_lower, "model name"
+            ),
             "processor": processor,
             "ram": AmazonScraping.first_spec_value(
-                specs_lower, "maximum memory supported"
+                specs_lower, "ram memory installed", "maximum memory supported"
             ),
             "storage": AmazonScraping.first_spec_value(specs_lower, "hard drive size"),
             "screen_size": AmazonScraping.first_spec_value(
-                specs_lower, "standing screen display size"
+                specs_lower, "screen size", "standing screen display size"
             ),
             "graphic_processor": AmazonScraping.first_spec_value(
-                specs_lower, "graphics coprocessor"
+                specs_lower, "graphics co processor", "graphics coprocessor"
             ),
             "colour": AmazonScraping.first_spec_value(specs_lower, "colour"),
             "price": AmazonScraping.parse_price_value(raw.get("price")),
@@ -207,6 +211,31 @@ class AmazonScraping:
         return (len(missing) == 0, missing)
 
     @staticmethod
+    def extract_asin_from_href(href: str) -> str | None:
+        patterns = [
+            r"/dp/([A-Z0-9]{10})",
+            r"/gp/product/([A-Z0-9]{10})",
+            r"/product/([A-Z0-9]{10})",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, href)
+            if match:
+                return match.group(1)
+        return None
+
+    @staticmethod
+    async def collect_listing_hrefs_from_dom(page) -> list[str]:
+        """Collect product-like hrefs from listing DOM (primary strategy)."""
+        hrefs = await page.evaluate(
+            """() => {
+                const slots = document.querySelectorAll("div.s-main-slot a[href]");
+                const all = slots.length ? slots : document.querySelectorAll("a[href]");
+                return Array.from(all).map((a) => a.getAttribute("href") || "");
+            }"""
+        )
+        return [h for h in hrefs if h and ("/dp/" in h or "/gp/product/" in h)]
+
+    @staticmethod
     async def collect_product_urls(
         page, already_scraped: set[str] | None = None
     ) -> list[str]:
@@ -220,13 +249,20 @@ class AmazonScraping:
         if already_scraped is None:
             already_scraped = set()
 
-        
-
         print("\n  Loading category page...")
         try:
             await page.goto(CATEGORY_URL, wait_until="networkidle", timeout=10000)
         except PWTimeout:
             print("     (networkidle timed out, continuing with what loaded)")
+
+        # Ensure HTML is at least parsed and listing container has a chance to render.
+        try:
+            await page.wait_for_load_state("domcontentloaded", timeout=10000)
+            await page.locator("div.s-main-slot").first.wait_for(
+                state="attached", timeout=10000
+            )
+        except Exception:
+            pass
 
         await asyncio.sleep(1.5)
         await AmazonPlaywrightHelpers.handle_captcha(page)
@@ -242,22 +278,28 @@ class AmazonScraping:
 
             await AmazonPlaywrightHelpers.handle_captcha(page)
 
-            try:
-                await page.locator(CARD_LINK_SEL).first.wait_for(
-                    state="visible", timeout=12000
+            extracted_hrefs = await AmazonScraping.collect_listing_hrefs_from_dom(page)
+
+            if not extracted_hrefs:
+                print("     ⚠  No product links found, retrying page load once...")
+                try:
+                    await page.reload(wait_until="domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
+                await asyncio.sleep(1.2)
+                extracted_hrefs = await AmazonScraping.collect_listing_hrefs_from_dom(
+                    page
                 )
-            except Exception:
-                print(f"  ✗ No product cards on page {page_num} — stopping")
+
+            if not extracted_hrefs:
+                print(f"  ✗ No product links on page {page_num} — stopping")
                 await AmazonPlaywrightHelpers.handle_captcha(page)
                 break
 
-            cards = await page.locator(CARD_LINK_SEL).all()
             new_on_page = 0
-            for card in cards:
-                href = await card.get_attribute("href") or ""
-                m = re.search(r"/dp/([A-Z0-9]{10})", href)
-                if m:
-                    asin = m.group(1)
+            for href in extracted_hrefs:
+                asin = AmazonScraping.extract_asin_from_href(href)
+                if asin:
                     if asin not in seen_asins:
                         seen_asins.add(asin)
                         clean_url = f"{BASE_URL}/dp/{asin}?th=1"
@@ -284,8 +326,10 @@ class AmazonScraping:
                 print("  ⚑ Next button not found — end of results")
                 break
 
+            active_selector = "div.s-main-slot a[href*='/dp/'], div.s-main-slot a[href*='/gp/product/']"
+
             first_href_before = (
-                await page.locator(CARD_LINK_SEL).first.get_attribute("href") or ""
+                await page.locator(active_selector).first.get_attribute("href") or ""
             )
 
             await AmazonPlaywrightHelpers.human_scroll(page)
@@ -300,7 +344,7 @@ class AmazonScraping:
             try:
                 await page.wait_for_function(
                     f"""() => {{
-                        const first = document.querySelector({repr(CARD_LINK_SEL)});
+                        const first = document.querySelector({repr(active_selector)});
                         return first && first.getAttribute("href") !== {repr(first_href_before)};
                     }}""",
                     timeout=15000,
@@ -309,7 +353,8 @@ class AmazonScraping:
             except Exception:
                 print("     ⚠  Content did not change after Next click")
                 first_href_after = (
-                    await page.locator(CARD_LINK_SEL).first.get_attribute("href") or ""
+                    await page.locator(active_selector).first.get_attribute("href")
+                    or ""
                 )
                 if first_href_after == first_href_before:
                     print("     ✗ Same content as before — stopping")

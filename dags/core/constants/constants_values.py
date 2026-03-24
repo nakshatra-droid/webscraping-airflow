@@ -4,7 +4,7 @@ class AmazonConstants:
         "&rh=n%3A1375424031&s=popularity-rank&fs=true&ref=lp_1375424031_sar"
     )
 
-    NUMBER_OF_URLS = 10
+    NUMBER_OF_URLS = 5
     BATCH_SIZE = 5
     BASE_URL = "https://www.amazon.in"
     SOURCE = "AMAZON"
