@@ -1,0 +1,22 @@
+[project]
+name = "webscraping-airflow"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python =">=3.11"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "ollama>=0.6.1",
+    "pgvector>=0.4.2",
+    "psycopg2-binary>=2.9.11",
+    "python-dotenv>=1.2.2",
+    "sqlalchemy>=2.0.48",
+    "sentence-transformers>=2.7.0,<3.0.0",
+    "numpy<2",
+    "tqdm>=4.67.1",
+    "torch>=2.2.2,<2.3.0",
+]
+
+
+[tool.uv]
+required-environments = ["sys_platform == 'darwin' and platform_machine == 'x86_64'"]
