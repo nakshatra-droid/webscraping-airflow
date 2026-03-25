@@ -168,9 +168,8 @@ class FlipkartScraping:
     async def collect_product_urls(
         page, already_scraped: set[str] | None = None
     ) -> list[str]:
-        print(f"\n{'=' * 60}")
-        print(f"  STEP 2 — Collecting URLs  (target: {NUMBER_OF_URLS})")
-        print(f"{'=' * 60}")
+        
+        print(f" Collecting URLs  (target: {NUMBER_OF_URLS})")
 
         if already_scraped is None:
             already_scraped = set()
@@ -185,19 +184,19 @@ class FlipkartScraping:
 
         while len(all_urls) < NUMBER_OF_URLS:
             target = page_url(page_num)
-            print(f"\n  📄 Page {page_num}  →  {target}")
+            print(f"\n Page {page_num}  →  {target}")
 
             try:
                 await page.goto(target, wait_until="networkidle", timeout=45000)
             except Exception:
-                print("     (networkidle timed out, continuing with what loaded)")
+                print(" (networkidle timed out, continuing with what loaded)")
 
             await page.wait_for_timeout(1500)
             await FlipkartPlaywrightHelpers.handle_captcha(page)
             await FlipkartPlaywrightHelpers.close_login_popup(page)
 
             if page_num > 1 and f"page={page_num}" not in page.url:
-                print("  ⚠  Redirect detected — waiting 6s then retrying...")
+                print(" Redirect detected — waiting 6s then retrying...")
                 await asyncio.sleep(6)
                 try:
                     await page.goto(target, wait_until="networkidle", timeout=45000)
@@ -206,7 +205,7 @@ class FlipkartScraping:
                 await page.wait_for_timeout(2000)
                 await FlipkartPlaywrightHelpers.handle_captcha(page)
                 if f"page={page_num}" not in page.url:
-                    print("  ✗ Still wrong page after retry — stopping URL collection.")
+                    print(" Still wrong page after retry — stopping URL collection.")
                     break
 
             try:
@@ -214,7 +213,7 @@ class FlipkartScraping:
                     state="visible", timeout=12000
                 )
             except Exception:
-                print(f"  ✗ No product cards on page {page_num} — stopping")
+                print(f" No product cards on page {page_num} — stopping")
                 break
 
             cards = await page.locator(".k7wcnx").all()
@@ -233,21 +232,21 @@ class FlipkartScraping:
                         if len(all_urls) >= NUMBER_OF_URLS:
                             break
 
-            print(f"     +{new_on_page} new URLs  (total: {len(all_urls)})")
+            print(f" +{new_on_page} new URLs  (total: {len(all_urls)})")
 
             if len(all_urls) >= NUMBER_OF_URLS:
-                print("  ✓ Reached NUMBER_OF_URLS target")
+                print(" Reached NUMBER_OF_URLS target")
                 break
 
             await FlipkartPlaywrightHelpers.simulate_human_scroll(page)
             await FlipkartPlaywrightHelpers.move_mouse_randomly(page)
             wait_sec = random.uniform(2.0, 5.0)
-            print(f"     Waiting {wait_sec:.1f}s before next page...")
+            print(f" Waiting {wait_sec:.1f}s before next page...")
             await asyncio.sleep(wait_sec)
             page_num += 1
 
         print(
-            f"\n  ✅ Total unique product URLs: {len(all_urls)}  (skipped already-scraped: {skipped_count})"
+            f"\n Total unique product URLs: {len(all_urls)}  (skipped already-scraped: {skipped_count})"
         )
         return all_urls
 
@@ -273,7 +272,7 @@ class FlipkartScraping:
             if re.match(r"^\d+%$", t):
                 product["discount"] = t
                 break
-        print(f"    ✓ Price: {product.get('price')}  Off: {product.get('discount')}")
+        print(f" Price: {product.get('price')}  Off: {product.get('discount')}")
 
         # rating
         for el in await page.locator(FlipkartConstants.RATING_SEL).all():
@@ -292,7 +291,7 @@ class FlipkartScraping:
                 product["reviews"] = t.replace("|", "").strip()
                 break
         print(
-            f"    ✓ Rating: {product.get('rating')}  Reviews: {product.get('reviews')}"
+            f" Rating: {product.get('rating')}  Reviews: {product.get('reviews')}"
         )
 
         # images

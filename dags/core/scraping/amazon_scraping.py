@@ -242,9 +242,7 @@ class AmazonScraping:
         """
         Crawl category listing pages until NUMBER_OF_URLS unique URLs are collected.
         """
-        print(f"\n{'=' * 55}")
-        print(f"  STEP 1 — Collecting URLs  (target: {NUMBER_OF_URLS})")
-        print(f"{'=' * 55}")
+        print(f"Collecting URLs  (target: {NUMBER_OF_URLS})")
 
         if already_scraped is None:
             already_scraped = set()
@@ -274,14 +272,14 @@ class AmazonScraping:
 
         page_num = 1
         while len(all_urls) < NUMBER_OF_URLS:
-            print(f"\n  📄 Page {page_num}...")
+            print(f"\n  Page {page_num}...")
 
             await AmazonPlaywrightHelpers.handle_captcha(page)
 
             extracted_hrefs = await AmazonScraping.collect_listing_hrefs_from_dom(page)
 
             if not extracted_hrefs:
-                print("     ⚠  No product links found, retrying page load once...")
+                print(" No product links found, retrying page load once...")
                 try:
                     await page.reload(wait_until="domcontentloaded", timeout=15000)
                 except Exception:
@@ -292,7 +290,7 @@ class AmazonScraping:
                 )
 
             if not extracted_hrefs:
-                print(f"  ✗ No product links on page {page_num} — stopping")
+                print(f" No product links on page {page_num} — stopping")
                 await AmazonPlaywrightHelpers.handle_captcha(page)
                 break
 
@@ -311,19 +309,19 @@ class AmazonScraping:
                         if len(all_urls) >= NUMBER_OF_URLS:
                             break
 
-            print(f"     +{new_on_page} new URLs  (total: {len(all_urls)})")
+            print(f" +{new_on_page} new URLs  (total: {len(all_urls)})")
 
             if len(all_urls) >= NUMBER_OF_URLS:
-                print("  ✓ Reached NUMBER_OF_URLS target")
+                print(" Reached NUMBER_OF_URLS target")
                 break
 
             next_btn = page.locator(NEXT_BTN_SEL).first
             try:
                 if not await next_btn.is_visible(timeout=3000):
-                    print("  ⚑ No Next button — end of results")
+                    print(" No Next button — end of results")
                     break
             except Exception:
-                print("  ⚑ Next button not found — end of results")
+                print(" Next button not found — end of results")
                 break
 
             active_selector = "div.s-main-slot a[href*='/dp/'], div.s-main-slot a[href*='/gp/product/']"
@@ -335,7 +333,7 @@ class AmazonScraping:
             await AmazonPlaywrightHelpers.human_scroll(page)
             await AmazonPlaywrightHelpers.move_mouse_randomly(page)
             wait_sec = random.uniform(1.5, 3.5)
-            print(f"     Waiting {wait_sec:.1f}s then clicking Next...")
+            print(f" Waiting {wait_sec:.1f}s then clicking Next...")
             await asyncio.sleep(wait_sec)
 
             await next_btn.scroll_into_view_if_needed()
@@ -349,15 +347,15 @@ class AmazonScraping:
                     }}""",
                     timeout=15000,
                 )
-                print("     ✓ New page content detected")
+                print(" New page content detected")
             except Exception:
-                print("     ⚠  Content did not change after Next click")
+                print(" Content did not change after Next click")
                 first_href_after = (
                     await page.locator(active_selector).first.get_attribute("href")
                     or ""
                 )
                 if first_href_after == first_href_before:
-                    print("     ✗ Same content as before — stopping")
+                    print(" Same content as before — stopping")
                     break
 
             await asyncio.sleep(0.8)
@@ -368,7 +366,7 @@ class AmazonScraping:
             page_num += 1
 
         print(
-            f"\n  ✅ Total unique product URLs: {len(all_urls)}"
+            f"\n Total unique product URLs: {len(all_urls)}"
             f"  (skipped already-scraped: {skipped_count})"
         )
         return all_urls
@@ -394,18 +392,18 @@ class AmazonScraping:
         except Exception:
             pass
 
-        print("\n  🌐 Loading product page...")
+        print("\n Loading product page...")
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=35000)
         except PWTimeout:
-            print("     domcontentloaded timed out — continuing anyway")
+            print(" domcontentloaded timed out — continuing anyway")
 
         try:
             await page.wait_for_selector(
                 AmazonConstants.PRODUCT_TITLE_SEL, timeout=15000
             )
         except PWTimeout:
-            print("     ⚠  Product title not found — page may be blocked or slow")
+            print(" Product title not found — page may be blocked or slow")
 
         await AmazonPlaywrightHelpers.handle_captcha(page)
         await AmazonPlaywrightHelpers.close_any_popups(page)
@@ -415,7 +413,7 @@ class AmazonScraping:
 
     @staticmethod
     async def extract(page) -> dict:
-        print("    🔍 Extracting product data...")
+        print(" Extracting product data...")
 
         title = await AmazonScraping.safe_text(
             page.locator(AmazonConstants.PRODUCT_TITLE_SEL)
