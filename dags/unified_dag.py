@@ -1,12 +1,11 @@
 from airflow import DAG
 from datetime import datetime
-from airflow.decorators import task
 from airflow.models.param import Param
-from airflow.utils.trigger_rule import TriggerRule
 
 from taskgroups.amazon_taskgroup import amazon_taskgroup
 from taskgroups.flipkart_taskgroup import flipkart_taskgroup
 from taskgroups.embedding_taskgroup import embedding_taskgroup
+from tasks.unified_tasks import choose_source, merge_scraping
 from core.constants.constants_values import AmazonConstants, FlipkartConstants
 
 
@@ -24,32 +23,17 @@ with DAG(
         )
     },
 ):
-
-    @task.branch(task_id="choose_source")
-    def choose_source(source: str) -> str:
-        selected = (source or AmazonConstants.SOURCE).upper()
-        if selected == FlipkartConstants.SOURCE:
-            return "flipkart_scraper.insert_metadata"
-        return "amazon_scraper.insert_metadata"
-
     selected_source = choose_source(source="{{ params.source }}")
 
     amazon = amazon_taskgroup()
 
     flipkart = flipkart_taskgroup()
 
-    @task(
-        task_id="merge_scraping",
-        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS,
-    )
-    def merge_scraping_task() -> str:
-        return "selected_scraper_completed"
-
-    merge_scraping = merge_scraping_task()
+    merge_scraping_task = merge_scraping()
 
     embedding = embedding_taskgroup("embedding")
 
     selected_source >> [amazon, flipkart]
-    amazon >> merge_scraping
-    flipkart >> merge_scraping
-    merge_scraping >> embedding
+    amazon >> merge_scraping_task
+    flipkart >> merge_scraping_task
+    merge_scraping_task >> embedding

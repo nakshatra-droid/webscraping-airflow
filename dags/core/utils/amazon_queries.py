@@ -61,9 +61,9 @@ ON CONFLICT (product_id, source) DO UPDATE
 INSERT_ACTIVITY_LOG = """
 INSERT INTO activity_logs
 	(id, run_id, activity_type, product_data, product_url,
-	 created_at, updated_at)
+	 retry_count, human_review_flag, created_at, updated_at)
 VALUES
-	(gen_random_uuid(), %s, %s, %s, %s, %s, %s)
+	(gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s)
 """
 
 FETCH_PRODUCT_URLS_TEMPLATE = """

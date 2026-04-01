@@ -137,6 +137,8 @@ class AmazonDBHelpers:
                 if product_data is not None
                 else None,
                 url,
+                0,
+                False,
                 now,
                 now,
             ),
@@ -180,6 +182,8 @@ class AmazonDBHelpers:
                 if item.get("product_data") is not None
                 else None,
                 item["url"],
+                0,
+                False,
                 now,
                 now,
             )
