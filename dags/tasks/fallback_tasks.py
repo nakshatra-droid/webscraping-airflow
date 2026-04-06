@@ -24,5 +24,5 @@ def validate_products(source, products):
 
 
 @task
-def update_metadata(metadata_run_id, source, stats):
-    FallbackScraping.update_metadata(metadata_run_id, source, stats)
+def update_data(metadata_run_id, source, stats):
+    FallbackScraping.update_data(metadata_run_id, source, stats)

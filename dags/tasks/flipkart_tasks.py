@@ -28,5 +28,5 @@ def validate_products(products):
 
 
 @task
-def update_metadata(metadata_run_id, stats):
-    FlipkartScraping.update_metadata(metadata_run_id, stats)
+def update_data(metadata_run_id, stats):
+    FlipkartScraping.update_data(metadata_run_id, stats)

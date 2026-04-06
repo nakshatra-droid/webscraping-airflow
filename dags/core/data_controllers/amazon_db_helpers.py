@@ -49,7 +49,7 @@ class AmazonDBHelpers:
         now = AmazonDBHelpers.utcnow_naive()
         hook = AmazonDBHelpers.get_hook()
         hook.run(INSERT_SCRAPING_RUN, parameters=(str(run_id), now, now, now))
-        print(f"  📝 Scraping run created  run_id={run_id}")
+        print(f" Scraping run created  run_id={run_id}")
         return run_id
 
     @staticmethod
@@ -65,6 +65,9 @@ class AmazonDBHelpers:
         hook.run(
             UPDATE_SCRAPING_RUN,
             parameters=(attempted, valid, invalid, now, now, str(run_id)),
+        )
+        print(
+            f"\n Run finalised  attempted={attempted}  valid={valid}  invalid={invalid}"
         )
 
     @staticmethod
@@ -159,7 +162,7 @@ class AmazonDBHelpers:
         merged_urls = product_urls | activity_urls
 
         print(
-            f"  📋 Already seen URLs ({SOURCE}) — "
+            f" Already seen URLs ({SOURCE}) — "
             f"products: {len(product_urls)}, activity_logs: {len(activity_urls)}, "
             f"merged: {len(merged_urls)}"
         )
@@ -192,12 +195,12 @@ class AmazonDBHelpers:
 
         try:
             cur.executemany(INSERT_ACTIVITY_LOG, rows)
-            print(f"  ✅ Flushed activity batch: {len(activity_buffer)}")
+            print(f" Flushed activity batch: {len(activity_buffer)}")
             activity_buffer.clear()
             return True
         except Exception as exc:
             print(
-                f"  ✗ Activity batch flush failed ({len(activity_buffer)} kept in buffer): {exc}"
+                f" Activity batch flush failed ({len(activity_buffer)} kept in buffer): {exc}"
             )
             return False
 
@@ -236,11 +239,11 @@ class AmazonDBHelpers:
                     ),
                 )
                 saved_count += 1
-            print(f"  ✅ Flushed product batch: {saved_count}")
+            print(f" Flushed product batch: {saved_count}")
             product_buffer.clear()
             return saved_count
         except Exception as exc:
             print(
-                f"  ✗ Product batch flush failed ({len(product_buffer)} kept in buffer): {exc}"
+                f" Product batch flush failed ({len(product_buffer)} kept in buffer): {exc}"
             )
             return 0

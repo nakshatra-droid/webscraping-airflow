@@ -251,7 +251,7 @@ class AmazonScraping:
         try:
             await page.goto(CATEGORY_URL, wait_until="networkidle", timeout=10000)
         except PWTimeout:
-            print("     (networkidle timed out, continuing with what loaded)")
+            print(" Category page loaded — continuing further")
 
         # Ensure HTML is at least parsed and listing container has a chance to render.
         try:
@@ -272,7 +272,7 @@ class AmazonScraping:
 
         page_num = 1
         while len(all_urls) < NUMBER_OF_URLS:
-            print(f"\n  Page {page_num}...")
+            print(f"\n  Page {page_num}:")
 
             await AmazonPlaywrightHelpers.handle_captcha(page)
 
@@ -312,7 +312,7 @@ class AmazonScraping:
             print(f" +{new_on_page} new URLs  (total: {len(all_urls)})")
 
             if len(all_urls) >= NUMBER_OF_URLS:
-                print(" Reached NUMBER_OF_URLS target")
+                print(" Reached target URLS")
                 break
 
             next_btn = page.locator(NEXT_BTN_SEL).first
@@ -392,11 +392,11 @@ class AmazonScraping:
         except Exception:
             pass
 
-        print("\n Loading product page...")
+        print(f"\n Loading URL: {url}")
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=35000)
         except PWTimeout:
-            print(" domcontentloaded timed out — continuing anyway")
+            print(" Page Loaded — continuing further")
 
         try:
             await page.wait_for_selector(
@@ -413,7 +413,7 @@ class AmazonScraping:
 
     @staticmethod
     async def extract(page) -> dict:
-        print(" Extracting product data...")
+        print(" Extracting product data")
 
         title = await AmazonScraping.safe_text(
             page.locator(AmazonConstants.PRODUCT_TITLE_SEL)
@@ -641,7 +641,7 @@ class AmazonScraping:
         return [valid, invalid]
 
     @staticmethod
-    def update_metadata(run_id: str, stats: list[list[dict]]) -> None:
+    def update_data(run_id: str, stats: list[list[dict]]) -> None:
         valid = stats[0] if stats else []
         invalid = stats[1] if stats and len(stats) > 1 else []
 

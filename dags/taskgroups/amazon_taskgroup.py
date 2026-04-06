@@ -6,7 +6,7 @@ from tasks.amazon_tasks import (
     collect_urls,
     scrape_products,
     validate_products,
-    update_metadata,
+    update_data,
 )
 
 
@@ -23,7 +23,7 @@ def amazon_taskgroup():
 
         stats = validate_products(products)
 
-        update_metadata(metadata_run_id=run_id, stats=stats)
+        update_data(metadata_run_id=run_id, stats=stats)
 
         run_id >> existing >> urls >> products >> stats
 

@@ -71,7 +71,7 @@ class FallbackScraping:
         return FallbackValidation.validate_products(source_val, products)
 
     @staticmethod
-    def update_metadata(
+    def update_data(
         metadata_run_id: str, source: str | None, stats: list[list[dict]]
     ):
         source_val = FallbackScraping.normalise_source(source)

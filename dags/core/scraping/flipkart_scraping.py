@@ -184,7 +184,7 @@ class FlipkartScraping:
 
         while len(all_urls) < NUMBER_OF_URLS:
             target = page_url(page_num)
-            print(f"\n Page {page_num}  →  {target}")
+            print(f"\n Page {page_num}:")
 
             try:
                 await page.goto(target, wait_until="networkidle", timeout=45000)
@@ -235,7 +235,7 @@ class FlipkartScraping:
             print(f" +{new_on_page} new URLs  (total: {len(all_urls)})")
 
             if len(all_urls) >= NUMBER_OF_URLS:
-                print(" Reached NUMBER_OF_URLS target")
+                print(" Reached target URLS")
                 break
 
             await FlipkartPlaywrightHelpers.simulate_human_scroll(page)
@@ -252,12 +252,14 @@ class FlipkartScraping:
 
     @staticmethod
     async def scrape_product_page(page, url: str) -> dict:
+        print(f"Loading URL: {url}")
         await page.goto(url, wait_until="networkidle", timeout=45000)
         await page.wait_for_timeout(2500)
         await FlipkartPlaywrightHelpers.handle_captcha(page)
         await FlipkartPlaywrightHelpers.close_login_popup(page)
 
         product = {"url": url}
+        print(" Extracting product data")
 
         # price
         for el in await page.locator(FlipkartConstants.PRICE_SEL).all():
@@ -272,7 +274,6 @@ class FlipkartScraping:
             if re.match(r"^\d+%$", t):
                 product["discount"] = t
                 break
-        print(f" Price: {product.get('price')}  Off: {product.get('discount')}")
 
         # rating
         for el in await page.locator(FlipkartConstants.RATING_SEL).all():
@@ -290,9 +291,6 @@ class FlipkartScraping:
             if "|" in t:
                 product["reviews"] = t.replace("|", "").strip()
                 break
-        print(
-            f" Rating: {product.get('rating')}  Reviews: {product.get('reviews')}"
-        )
 
         # images
         seen_img, images = set(), []
@@ -487,7 +485,7 @@ class FlipkartScraping:
         return [valid, invalid]
 
     @staticmethod
-    def update_metadata(metadata_run_id: str, stats: list[list[dict]]) -> None:
+    def update_data(metadata_run_id: str, stats: list[list[dict]]) -> None:
         valid = stats[0] if stats else []
         invalid = stats[1] if stats and len(stats) > 1 else []
 
