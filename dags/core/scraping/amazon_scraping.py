@@ -256,7 +256,7 @@ class AmazonScraping:
         # Ensure HTML is at least parsed and listing container has a chance to render.
         try:
             await page.wait_for_load_state("domcontentloaded", timeout=10000)
-            await page.locator("div.s-main-slot").first.wait_for(
+            await page.locator(AmazonConstants.MAIN_PAGE_SEL).first.wait_for(
                 state="attached", timeout=10000
             )
         except Exception:
@@ -324,7 +324,7 @@ class AmazonScraping:
                 print(" Next button not found — end of results")
                 break
 
-            active_selector = "div.s-main-slot a[href*='/dp/'], div.s-main-slot a[href*='/gp/product/']"
+            active_selector = AmazonConstants.ACTIVE_SEL
 
             first_href_before = (
                 await page.locator(active_selector).first.get_attribute("href") or ""

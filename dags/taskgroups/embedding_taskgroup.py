@@ -1,4 +1,4 @@
-from airflow.utils.task_group import TaskGroup
+from airflow.decorators import task_group
 
 from tasks.embedding_tasks import (
     insert_embedding_metadata,
@@ -11,23 +11,20 @@ from tasks.embedding_tasks import (
 )
 
 
+@task_group
 def embedding_taskgroup(group_id):
+    run_id = insert_embedding_metadata()
 
-    with TaskGroup(group_id=group_id) as tg:
-        run_id = insert_embedding_metadata()
+    products = fetch_pending_products()
 
-        products = fetch_pending_products()
+    texts = build_embedding_texts(products)
 
-        texts = build_embedding_texts(products)
+    embeddings = generate_embeddings(texts)
 
-        embeddings = generate_embeddings(texts)
+    ids = insert_embeddings(embeddings, metadata_run_id=run_id)
 
-        ids = insert_embeddings(embeddings, metadata_run_id=run_id)
+    updated = update_product_status(ids)
 
-        updated = update_product_status(ids)
+    update_metadata(metadata_run_id=run_id, total_count=updated)
 
-        update_metadata(metadata_run_id=run_id, total_count=updated)
-
-        run_id >> products >> texts >> embeddings >> ids >> updated
-
-    return tg
+    run_id >> products >> texts >> embeddings >> ids >> updated

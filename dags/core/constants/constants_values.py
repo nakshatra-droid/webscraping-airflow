@@ -4,7 +4,7 @@ class AmazonConstants:
         "&rh=n%3A1375424031&s=popularity-rank&fs=true&ref=lp_1375424031_sar"
     )
 
-    NUMBER_OF_URLS = 5
+    NUMBER_OF_URLS = 10
     BATCH_SIZE = 5
     BASE_URL = "https://www.amazon.in"
     SOURCE = "AMAZON"
@@ -17,7 +17,8 @@ class AmazonConstants:
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     )
-
+    MAIN_PAGE_SEL="div.s-main-slot"
+    ACTIVE_SEL="div.s-main-slot a[href*='/dp/'], div.s-main-slot a[href*='/gp/product/']"
     # CSS selector for product card links
     CARD_LINK_SEL = "a.a-link-normal.s-line-clamp-4.a-text-normal"
 

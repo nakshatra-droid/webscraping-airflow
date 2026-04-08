@@ -1,4 +1,4 @@
-from airflow.utils.task_group import TaskGroup
+from airflow.decorators import task_group
 
 from tasks.flipkart_tasks import (
     insert_metadata,
@@ -10,21 +10,18 @@ from tasks.flipkart_tasks import (
 )
 
 
+@task_group(group_id="flipkart_scraper")
 def flipkart_taskgroup():
+    run_id = insert_metadata()
 
-    with TaskGroup(group_id="flipkart_scraper") as tg:
-        run_id = insert_metadata()
+    existing = fetch_existing_urls()
 
-        existing = fetch_existing_urls()
+    urls = collect_urls(existing)
 
-        urls = collect_urls(existing)
+    products = scrape_products(urls)
 
-        products = scrape_products(urls)
+    stats = validate_products(products)
 
-        stats = validate_products(products)
+    update_data(metadata_run_id=run_id, stats=stats)
 
-        update_data(metadata_run_id=run_id, stats=stats)
-
-        run_id >> existing >> urls >> products >> stats
-
-    return tg
+    run_id >> existing >> urls >> products >> stats
